@@ -1,7 +1,7 @@
 {
   "name": "rhachet-brains-openai",
   "author": "ehmpathy",
-  "description": "rhachet BrainAtom & BrainRepl contracts for openai inference",
+  "description": "rhachet brain.atom and brain.repl adapter for openai",
   "version": "0.1.0",
   "repository": "ehmpathy/rhachet-brains-openai",
   "homepage": "https://github.com/ehmpathy/rhachet-brains-openai",
@@ -55,17 +55,12 @@
     "prepare": "if [ -e .git ] && [ -z $CI ]; then npm run prepare:husky && npm run prepare:rhachet; fi"
   },
   "dependencies": {
-    "@ehmpathy/uni-time": "1.8.1",
     "@openai/codex-sdk": "0.77.0",
-    "as-procedure": "1.1.7",
     "domain-objects": "0.31.9",
-    "find-up": "5.0.0",
-    "hash-fns": "1.1.0",
     "helpful-errors": "1.5.3",
     "openai": "5.8.2",
     "rhachet-artifact": "1.0.1",
     "rhachet-artifact-git": "1.1.5",
-    "serde-fns": "1.3.0",
     "type-fns": "1.21.0",
     "wrapper-fns": "1.1.7",
     "zod": "4.3.4"
