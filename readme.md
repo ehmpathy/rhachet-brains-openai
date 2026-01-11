@@ -34,6 +34,7 @@ const result = await brainAtom.ask({
 // create a brain repl for agentic tasks
 const brainRepl = genBrainRepl({ slug: 'openai/codex' });
 
+// use ask() for read-only operations
 const result = await brainRepl.ask({
   role: { briefs: [] },
   prompt: 'analyze this codebase',
