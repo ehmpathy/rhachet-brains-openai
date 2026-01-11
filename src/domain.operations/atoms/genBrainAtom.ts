@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { type BrainAtom, castBriefsToPrompt } from 'rhachet';
+import { BrainAtom, castBriefsToPrompt } from 'rhachet';
 import type { Artifact } from 'rhachet-artifact';
 import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
@@ -63,7 +63,7 @@ const CONFIG_BY_SLUG: Record<
 export const genBrainAtom = (input: { slug: OpenAIAtomSlug }): BrainAtom => {
   const config = CONFIG_BY_SLUG[input.slug];
 
-  return {
+  return new BrainAtom({
     repo: 'openai',
     slug: input.slug,
     description: config.description,
@@ -100,26 +100,40 @@ export const genBrainAtom = (input: { slug: OpenAIAtomSlug }): BrainAtom => {
       // convert zod schema to json schema for structured output
       const jsonSchema = z.toJSONSchema(askInput.schema.output);
 
-      // call openai api with strict json_schema response format
+      // check if schema is an object type (openai only supports object schemas for response_format)
+      const isObjectSchema =
+        typeof jsonSchema === 'object' &&
+        jsonSchema !== null &&
+        'type' in jsonSchema &&
+        jsonSchema.type === 'object';
+
+      // call openai api, with response_format only for object schemas
       const response = await openai.chat.completions.create({
         model: config.model,
         messages,
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'response',
-            strict: true,
-            schema: jsonSchema,
+        ...(isObjectSchema && {
+          response_format: {
+            type: 'json_schema',
+            json_schema: {
+              name: 'response',
+              strict: true,
+              schema: jsonSchema,
+            },
           },
-        },
+        }),
       });
 
       // extract content from response
       const content = response.choices[0]?.message?.content ?? '';
 
-      // parse JSON response and validate via schema
-      const parsed = JSON.parse(content);
-      return askInput.schema.output.parse(parsed);
+      // parse response based on schema type
+      if (isObjectSchema) {
+        const parsed = JSON.parse(content);
+        return askInput.schema.output.parse(parsed);
+      }
+
+      // for non-object schemas, validate the raw content directly
+      return askInput.schema.output.parse(content);
     },
-  };
+  });
 };

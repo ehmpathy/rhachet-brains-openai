@@ -1,6 +1,6 @@
 # rhachet-brains-openai
 
-rhachet BrainAtom & BrainRepl contracts for openai inference
+rhachet brain.atom and brain.repl adapter for openai
 
 ## install
 

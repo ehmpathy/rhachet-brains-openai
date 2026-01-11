@@ -12,6 +12,10 @@ on:
         required: false
         type: string
         default: "us-east-1"
+    secrets:
+      openai-api-key:
+        description: "api key for openai, used in integration tests"
+        required: true
 
 permissions:
   id-token: write # required for oidc
@@ -166,6 +170,8 @@ jobs:
 
       - name: test:integration
         run: THOROUGH=true npm run test:integration
+        env:
+          OPENAI_API_KEY: ${{ secrets.openai-api-key }}
 
   test-acceptance-locally:
     runs-on: ubuntu-24.04
@@ -200,3 +206,5 @@ jobs:
 
       - name: test:acceptance:locally
         run: THOROUGH=true npm run test:acceptance:locally --if-present
+        env:
+          OPENAI_API_KEY: ${{ secrets.openai-api-key }}
