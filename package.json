@@ -6,10 +6,14 @@
   "repository": "ehmpathy/rhachet-brains-openai",
   "homepage": "https://github.com/ehmpathy/rhachet-brains-openai",
   "keywords": [
-    "artifact",
-    "git",
-    "file",
-    "repo"
+    "rhachet",
+    "brain",
+    "openai",
+    "codex",
+    "gpt",
+    "o1",
+    "llm",
+    "ai"
   ],
   "bugs": "https://github.com/ehmpathy/rhachet-brains-openai/issues",
   "license": "MIT",
