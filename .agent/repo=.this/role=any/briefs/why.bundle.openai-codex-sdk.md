@@ -57,13 +57,13 @@ this inlines `@openai/codex-sdk` js while it keeps other peer deps external.
 var import_meta = {};
 ```
 
-the build replaces this with a shim that walks up from cwd to find the peer dep:
+the build replaces this with a shim that walks up from `__dirname` to find the peer dep:
 
 ```js
 var import_meta = { get url() {
   var path = require('path');
   var fs = require('fs');
-  var dir = process.cwd();
+  var dir = __dirname;
   while (dir !== path.dirname(dir)) {
     var candidate = path.join(dir, 'node_modules', '@openai', 'codex-sdk', 'dist', 'index.js');
     if (fs.existsSync(candidate)) return require('url').pathToFileURL(candidate).href;
@@ -75,7 +75,7 @@ var import_meta = { get url() {
 
 this approach:
 - uses lazy evaluation (getter) so resolution happens only when codex is used
-- walks up directory tree to find node_modules (works with any package manager)
+- walks up from `__dirname` (bundle location) not `process.cwd()` (works with pnpm which links peer deps relative to package location)
 - bypasses jest's module resolver entirely (no moduleNameMapper needed)
 - points to `dist/index.js` so relative vendor/ paths resolve correctly
 
