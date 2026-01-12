@@ -22,8 +22,7 @@
     "node": ">=8.0.0"
   },
   "files": [
-    "/dist",
-    "/vendor"
+    "/dist"
   ],
   "scripts": {
     "build:ts": "tsc -p ./tsconfig.build.json",
@@ -100,6 +99,7 @@
     "yalc": "1.0.0-pre.53"
   },
   "peerDependencies": {
+    "@openai/codex-sdk": ">=0.77.0",
     "rhachet": ">=1.21.4"
   },
   "config": {

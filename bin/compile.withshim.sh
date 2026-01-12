@@ -9,11 +9,13 @@ set -euo pipefail
 DIST_FILE="dist/index.js"
 
 # extract external deps from package.json (dependencies + peerDependencies)
+# note: @openai/codex-sdk is excluded - we bundle its JS but use peer dep for vendor binaries
 EXTERNALS=$(jq -r '
   [.dependencies, .peerDependencies]
   | map(keys // [])
   | flatten
   | unique
+  | map(select(. != "@openai/codex-sdk"))
   | map("--external:" + .)
   | join(" ")
 ' package.json)
@@ -27,22 +29,28 @@ npx esbuild src/index.ts \
   --outfile="$DIST_FILE" \
   $EXTERNALS
 
-# apply import_meta shim for cjs compat
-echo "• apply import_meta shim"
+# apply import_meta shim to resolve via @openai/codex-sdk location
+# uses a directory walk to find the peer dep - works in jest + pnpm without config
+echo "• apply import_meta shim → @openai/codex-sdk"
 node -e "
 const fs = require('fs');
 const content = fs.readFileSync('$DIST_FILE', 'utf8');
-const shimmed = content.replace(
-  /var import_meta = \\{\\};/g,
-  'var import_meta = { url: require(\"url\").pathToFileURL(__filename).href };'
-);
+// shim walks up from cwd to find @openai/codex-sdk in node_modules
+// returns path to dist/index.js so relative vendor/ paths resolve correctly
+const shim = \`var import_meta = { get url() {
+  var path = require('path');
+  var fs = require('fs');
+  var dir = process.cwd();
+  while (dir !== path.dirname(dir)) {
+    var candidate = path.join(dir, 'node_modules', '@openai', 'codex-sdk', 'dist', 'index.js');
+    if (fs.existsSync(candidate)) return require('url').pathToFileURL(candidate).href;
+    dir = path.dirname(dir);
+  }
+  throw new Error('@openai/codex-sdk not found. Install it as a peer dependency.');
+} };\`;
+const shimmed = content.replace(/var import_meta = \\{\\};/g, shim);
 fs.writeFileSync('$DIST_FILE', shimmed);
 "
-
-# copy codex vendor binaries
-echo "• copy codex vendor binaries"
-rm -rf vendor
-cp -r node_modules/@openai/codex-sdk/vendor vendor
 
 # emit type declarations
 echo "• emit type declarations"
