@@ -18,14 +18,14 @@ import { z } from 'zod';
 const brainAtom = genBrainAtom({ slug: 'openai/gpt-4o-mini' });
 
 // simple string output
-const response = await brainAtom.ask({
+const explanation = await brainAtom.ask({
   role: { briefs: [] },
   prompt: 'explain this code',
   schema: { output: z.string() },
 });
 
 // structured object output
-const result = await brainAtom.ask({
+const { summary, issues } = await brainAtom.ask({
   role: { briefs: [] },
   prompt: 'analyze this code',
   schema: { output: z.object({ summary: z.string(), issues: z.array(z.string()) }) },
@@ -35,17 +35,17 @@ const result = await brainAtom.ask({
 const brainRepl = genBrainRepl({ slug: 'openai/codex' });
 
 // use ask() for read-only operations
-const result = await brainRepl.ask({
+const { analysis } = await brainRepl.ask({
   role: { briefs: [] },
   prompt: 'analyze this codebase',
-  schema: { output: z.object({ content: z.string() }) },
+  schema: { output: z.object({ analysis: z.string() }) },
 });
 
 // use act() for read+write operations
-const result = await brainRepl.act({
+const { proposal } = await brainRepl.act({
   role: { briefs: [] },
   prompt: 'refactor this module',
-  schema: { output: z.object({ content: z.string() }) },
+  schema: { output: z.object({ proposal: z.string() }) },
 });
 ```
 
