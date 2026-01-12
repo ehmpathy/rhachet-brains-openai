@@ -35,12 +35,12 @@ echo "• apply import_meta shim → @openai/codex-sdk"
 node -e "
 const fs = require('fs');
 const content = fs.readFileSync('$DIST_FILE', 'utf8');
-// shim walks up from cwd to find @openai/codex-sdk in node_modules
-// returns path to dist/index.js so relative vendor/ paths resolve correctly
+// shim walks up from __dirname to find @openai/codex-sdk in node_modules
+// this works with pnpm which links peer deps relative to the package location
 const shim = \`var import_meta = { get url() {
   var path = require('path');
   var fs = require('fs');
-  var dir = process.cwd();
+  var dir = __dirname;
   while (dir !== path.dirname(dir)) {
     var candidate = path.join(dir, 'node_modules', '@openai', 'codex-sdk', 'dist', 'index.js');
     if (fs.existsSync(candidate)) return require('url').pathToFileURL(candidate).href;
