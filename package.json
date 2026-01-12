@@ -98,6 +98,9 @@
     "typescript": "5.4.5",
     "yalc": "1.0.0-pre.53"
   },
+  "peerDependencies": {
+    "rhachet": ">=1.21.4"
+  },
   "config": {
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
