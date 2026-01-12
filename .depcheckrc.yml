@@ -2,7 +2,7 @@ ignores:
   - depcheck
   - declapract
   - declapract-typescript-ehmpathy
-  - '@commitlint/config-conventional'
+  - "@commitlint/config-conventional"
   - serverless-prune-plugin
   - husky
   - if-env
@@ -21,3 +21,4 @@ ignores:
   - rhachet-roles-ehmpathy
   - tsc-alias
   - yalc
+  - esbuild
