@@ -1,7 +1,8 @@
 import { BadRequestError } from 'helpful-errors';
+import { toMilliseconds } from 'iso-time';
 import path from 'path';
 import { genArtifactGitFile } from 'rhachet-artifact-git';
-import { given, then, when } from 'test-fns';
+import { given, then, useThen, when } from 'test-fns';
 import { z } from 'zod';
 
 import { TEST_ASSETS_DIR } from '../../.test/assets/dir';
@@ -25,8 +26,8 @@ describe('genBrainRepl.integration', () => {
         expect(brainRepl.repo).toEqual('openai');
       });
 
-      then('slug is "codex"', () => {
-        expect(brainRepl.slug).toEqual('codex');
+      then('slug is "openai/codex"', () => {
+        expect(brainRepl.slug).toEqual('openai/codex');
       });
 
       then('description is defined', () => {
@@ -38,15 +39,33 @@ describe('genBrainRepl.integration', () => {
 
   given('[case2] ask is called (readonly mode)', () => {
     when('[t0] with simple prompt', () => {
-      then('it returns a substantive response', async () => {
-        const result = await brainRepl.ask({
+      const result = useThen('it returns a substantive response', async () => {
+        const response = await brainRepl.ask({
           role: {},
           prompt: 'respond with exactly: hello from codex',
           schema: { output: outputSchema },
         });
-        expect(result.content).toBeDefined();
-        expect(result.content.length).toBeGreaterThan(0);
-        expect(result.content.toLowerCase()).toContain('hello');
+        expect(response.output.content).toBeDefined();
+        expect(response.output.content.length).toBeGreaterThan(0);
+        expect(response.output.content.toLowerCase()).toContain('hello');
+        return response;
+      });
+
+      then('metrics.size includes token and char counts', () => {
+        expect(result.metrics.size.tokens.input).toBeGreaterThan(0);
+        expect(result.metrics.size.tokens.output).toBeGreaterThan(0);
+        expect(result.metrics.size.chars.input).toBeGreaterThan(0);
+        expect(result.metrics.size.chars.output).toBeGreaterThan(0);
+      });
+
+      then('metrics.cost.time is greater than 0', () => {
+        expect(toMilliseconds(result.metrics.cost.time)).toBeGreaterThan(0);
+      });
+
+      then('metrics.cost.cash includes total and deets', () => {
+        expect(result.metrics.cost.cash.total).toBeDefined();
+        expect(result.metrics.cost.cash.deets.input).toBeDefined();
+        expect(result.metrics.cost.cash.deets.output).toBeDefined();
       });
     });
 
@@ -62,8 +81,8 @@ describe('genBrainRepl.integration', () => {
           prompt: 'say hello',
           schema: { output: outputSchema },
         });
-        expect(result.content).toBeDefined();
-        expect(result.content).toContain('ZEBRA42');
+        expect(result.output.content).toBeDefined();
+        expect(result.output.content).toContain('ZEBRA42');
       });
     });
   });
@@ -76,9 +95,9 @@ describe('genBrainRepl.integration', () => {
           prompt: 'respond with exactly: hello from codex action',
           schema: { output: outputSchema },
         });
-        expect(result.content).toBeDefined();
-        expect(result.content.length).toBeGreaterThan(0);
-        expect(result.content.toLowerCase()).toContain('hello');
+        expect(result.output.content).toBeDefined();
+        expect(result.output.content.length).toBeGreaterThan(0);
+        expect(result.output.content.toLowerCase()).toContain('hello');
       });
     });
   });

@@ -15,33 +15,33 @@ describe('rhachet-brains-openai.acceptance', () => {
   given('[case1] genBrainAtom usage from readme', () => {
     when('[t0] create a brain atom for direct model inference', () => {
       then('brainAtom is created with correct slug', () => {
-        const brainAtom = genBrainAtom({ slug: 'openai/gpt-4o-mini' });
-        expect(brainAtom.slug).toEqual('openai/gpt-4o-mini');
+        const brainAtom = genBrainAtom({ slug: 'openai/gpt/4o-mini' });
+        expect(brainAtom.slug).toEqual('openai/gpt/4o-mini');
       });
 
       then('brainAtom has ask method', () => {
-        const brainAtom = genBrainAtom({ slug: 'openai/gpt-4o-mini' });
+        const brainAtom = genBrainAtom({ slug: 'openai/gpt/4o-mini' });
         expect(typeof brainAtom.ask).toEqual('function');
       });
     });
 
     when('[t1] ask with string schema output', () => {
       then('returns a string directly', async () => {
-        const brainAtom = genBrainAtom({ slug: 'openai/gpt-4o-mini' });
-        const explanation = await brainAtom.ask({
+        const brainAtom = genBrainAtom({ slug: 'openai/gpt/4o-mini' });
+        const result = await brainAtom.ask({
           role: { briefs: [] },
           prompt: 'respond with exactly: hello world',
           schema: { output: z.string() },
         });
 
-        expect(typeof explanation).toEqual('string');
-        expect(explanation.toLowerCase()).toContain('hello');
+        expect(typeof result.output).toEqual('string');
+        expect(result.output.toLowerCase()).toContain('hello');
       });
     });
 
     when('[t2] ask with structured object schema output', () => {
       then('returns structured object that fits schema', async () => {
-        const brainAtom = genBrainAtom({ slug: 'openai/gpt-4o-mini' });
+        const brainAtom = genBrainAtom({ slug: 'openai/gpt/4o-mini' });
         const result = await brainAtom.ask({
           role: { briefs: [] },
           prompt: 'analyze this code: console.log("test")',
@@ -53,10 +53,10 @@ describe('rhachet-brains-openai.acceptance', () => {
           },
         });
 
-        expect(result).toHaveProperty('summary');
-        expect(result).toHaveProperty('issues');
-        expect(typeof result.summary).toEqual('string');
-        expect(Array.isArray(result.issues)).toEqual(true);
+        expect(result.output).toHaveProperty('summary');
+        expect(result.output).toHaveProperty('issues');
+        expect(typeof result.output.summary).toEqual('string');
+        expect(Array.isArray(result.output.issues)).toEqual(true);
       });
     });
   });
@@ -66,7 +66,7 @@ describe('rhachet-brains-openai.acceptance', () => {
       then('brainRepl is created', () => {
         const brainRepl = genBrainRepl({ slug: 'openai/codex' });
         expect(brainRepl).toBeDefined();
-        expect(brainRepl.slug).toEqual('codex');
+        expect(brainRepl.slug).toEqual('openai/codex');
       });
 
       then('brainRepl has ask method', () => {
@@ -89,8 +89,8 @@ describe('rhachet-brains-openai.acceptance', () => {
           schema: { output: z.object({ analysis: z.string() }) },
         });
 
-        expect(result).toHaveProperty('analysis');
-        expect(typeof result.analysis).toEqual('string');
+        expect(result.output).toHaveProperty('analysis');
+        expect(typeof result.output.analysis).toEqual('string');
       });
     });
 
@@ -103,49 +103,49 @@ describe('rhachet-brains-openai.acceptance', () => {
           schema: { output: z.object({ proposal: z.string() }) },
         });
 
-        expect(result).toHaveProperty('proposal');
-        expect(typeof result.proposal).toEqual('string');
+        expect(result.output).toHaveProperty('proposal');
+        expect(typeof result.output.proposal).toEqual('string');
       });
     });
   });
 
   given('[case3] available brain slugs from readme', () => {
     when('[t0] atom slugs', () => {
-      then('openai/gpt-4o works', () => {
-        const atom = genBrainAtom({ slug: 'openai/gpt-4o' });
-        expect(atom.slug).toEqual('openai/gpt-4o');
+      then('openai/gpt/4o works', () => {
+        const atom = genBrainAtom({ slug: 'openai/gpt/4o' });
+        expect(atom.slug).toEqual('openai/gpt/4o');
       });
 
-      then('openai/gpt-4o-mini works', () => {
-        const atom = genBrainAtom({ slug: 'openai/gpt-4o-mini' });
-        expect(atom.slug).toEqual('openai/gpt-4o-mini');
+      then('openai/gpt/4o-mini works', () => {
+        const atom = genBrainAtom({ slug: 'openai/gpt/4o-mini' });
+        expect(atom.slug).toEqual('openai/gpt/4o-mini');
       });
 
-      then('openai/o1 works', () => {
-        const atom = genBrainAtom({ slug: 'openai/o1' });
-        expect(atom.slug).toEqual('openai/o1');
+      then('openai/o/1 works', () => {
+        const atom = genBrainAtom({ slug: 'openai/o/1' });
+        expect(atom.slug).toEqual('openai/o/1');
       });
 
-      then('openai/o1-mini works', () => {
-        const atom = genBrainAtom({ slug: 'openai/o1-mini' });
-        expect(atom.slug).toEqual('openai/o1-mini');
+      then('openai/o/1-mini works', () => {
+        const atom = genBrainAtom({ slug: 'openai/o/1-mini' });
+        expect(atom.slug).toEqual('openai/o/1-mini');
       });
     });
 
     when('[t1] repl slugs', () => {
       then('openai/codex works', () => {
         const repl = genBrainRepl({ slug: 'openai/codex' });
-        expect(repl.slug).toEqual('codex');
+        expect(repl.slug).toEqual('openai/codex');
       });
 
       then('openai/codex/max works', () => {
         const repl = genBrainRepl({ slug: 'openai/codex/max' });
-        expect(repl.slug).toEqual('codex/max');
+        expect(repl.slug).toEqual('openai/codex/max');
       });
 
       then('openai/codex/mini works', () => {
         const repl = genBrainRepl({ slug: 'openai/codex/mini' });
-        expect(repl.slug).toEqual('codex/mini');
+        expect(repl.slug).toEqual('openai/codex/mini');
       });
     });
   });
