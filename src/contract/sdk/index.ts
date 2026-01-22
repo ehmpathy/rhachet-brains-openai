@@ -8,7 +8,7 @@ import { genBrainRepl } from '../../domain.operations/repls/genBrainRepl';
  * .why = enables consumers to register openai atoms with genContextBrain
  */
 export const getBrainAtomsByOpenAI = (): BrainAtom[] => {
-  return [genBrainAtom({ slug: 'openai/gpt-4o' })];
+  return [genBrainAtom({ slug: 'openai/gpt/4o' })];
 };
 
 /**

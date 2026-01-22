@@ -39,15 +39,15 @@ describe('rhachet-brains-openai.integration', () => {
   });
 
   given('[case3] genBrainAtom factory', () => {
-    when('[t0] called with openai/gpt-4o-mini slug', () => {
-      const atom = genBrainAtom({ slug: 'openai/gpt-4o-mini' });
+    when('[t0] called with openai/gpt/4o-mini slug', () => {
+      const atom = genBrainAtom({ slug: 'openai/gpt/4o-mini' });
 
       then('returns BrainAtom instance', () => {
         expect(atom).toBeInstanceOf(BrainAtom);
       });
 
       then('has correct slug', () => {
-        expect(atom.slug).toEqual('openai/gpt-4o-mini');
+        expect(atom.slug).toEqual('openai/gpt/4o-mini');
       });
     });
   });
@@ -61,7 +61,7 @@ describe('rhachet-brains-openai.integration', () => {
       });
 
       then('has correct slug', () => {
-        expect(repl.slug).toEqual('codex');
+        expect(repl.slug).toEqual('openai/codex');
       });
     });
   });

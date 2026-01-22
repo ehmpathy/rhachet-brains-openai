@@ -1,5 +1,13 @@
 import { Codex } from '@openai/codex-sdk';
-import { BrainRepl, castBriefsToPrompt } from 'rhachet';
+import type { BrainSpec } from 'rhachet';
+import {
+  BrainOutput,
+  BrainOutputMetrics,
+  BrainRepl,
+  castBriefsToPrompt,
+} from 'rhachet';
+import type { BrainReplPlugs } from 'rhachet/dist/domain.objects/BrainReplPlugs';
+import { calcBrainOutputCost } from 'rhachet/dist/domain.operations/brainCost/calcBrainOutputCost';
 import type { Artifact } from 'rhachet-artifact';
 import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
@@ -8,40 +16,51 @@ import type { z } from 'zod';
 
 import { asJsonSchema } from '@src/infra/schema/asJsonSchema';
 
-/**
- * .what = supported openai codex repl slugs
- * .why = enables type-safe slug specification with model variants
- */
-type CodexSlug =
-  | 'openai/codex'
-  | 'openai/codex/max'
-  | 'openai/codex/mini'
-  | 'openai/codex/5.2';
+import {
+  type BrainAtomConfig,
+  CONFIG_BY_ATOM_SLUG,
+} from '../../domain.objects/BrainAtom.config';
 
 /**
- * .what = model configuration by slug
- * .why = maps slugs to API model names and descriptions
+ * .what = supported openai brain repl slugs
+ * .why = enables type-safe slug specification with model variants
+ *
+ * .structure
+ *   openai/codex                → default (5.1-max)
+ *   openai/codex/{5.1,5.2}      → version (defaults to max tier)
+ *   openai/codex/{mini,max}     → capability tier (defaults to 5.1)
+ *   openai/codex/{mini,max}/5.1 → explicit version + tier
+ *
+ * .note = 5.2 has only one variant (gpt-5.2-codex); mini/max/5.2 slugs will be added when available
  */
-const CONFIG_BY_SLUG: Record<
-  CodexSlug,
-  { model: string | undefined; description: string }
-> = {
-  'openai/codex': {
-    model: undefined, // use SDK default (gpt-5.1-codex-max)
-    description: 'codex - agentic coding assistant (default model)',
-  },
-  'openai/codex/max': {
-    model: 'gpt-5.1-codex-max',
-    description: 'codex max - optimized for long-horizon agentic coding',
-  },
-  'openai/codex/mini': {
-    model: 'gpt-5.1-codex-mini',
-    description: 'codex mini - fast and cost-effective',
-  },
-  'openai/codex/5.2': {
-    model: 'gpt-5.2-codex',
-    description: 'codex 5.2 - most advanced agentic coding model',
-  },
+export type OpenaiBrainReplSlug =
+  | 'openai/codex'
+  | 'openai/codex/5.1'
+  | 'openai/codex/5.2'
+  | 'openai/codex/mini'
+  | 'openai/codex/max'
+  | 'openai/codex/mini/5.1'
+  | 'openai/codex/max/5.1';
+
+/**
+ * .what = repl config by slug
+ * .why = maps repl slugs to atom configs (reuses specs from CONFIG_BY_ATOM_SLUG)
+ */
+const CONFIG_BY_REPL_SLUG: Record<OpenaiBrainReplSlug, BrainAtomConfig> = {
+  // default
+  'openai/codex': CONFIG_BY_ATOM_SLUG['openai/gpt/codex/5.1-max'],
+
+  // version only (defaults to max tier)
+  'openai/codex/5.1': CONFIG_BY_ATOM_SLUG['openai/gpt/codex/5.1-max'],
+  'openai/codex/5.2': CONFIG_BY_ATOM_SLUG['openai/gpt/codex/5.2'],
+
+  // capability tier (defaults to 5.1)
+  'openai/codex/mini': CONFIG_BY_ATOM_SLUG['openai/gpt/codex/5.1-mini'],
+  'openai/codex/max': CONFIG_BY_ATOM_SLUG['openai/gpt/codex/5.1-max'],
+
+  // explicit 5.1 versions
+  'openai/codex/mini/5.1': CONFIG_BY_ATOM_SLUG['openai/gpt/codex/5.1-mini'],
+  'openai/codex/max/5.1': CONFIG_BY_ATOM_SLUG['openai/gpt/codex/5.1-max'],
 };
 
 /**
@@ -63,10 +82,14 @@ const composePromptWithSystem = (
 const invokeCodex = async <TOutput>(input: {
   mode: 'ask' | 'act';
   model: string | undefined;
+  spec: BrainSpec;
   role: { briefs?: Artifact<typeof GitFile>[] };
   prompt: string;
   schema: { output: z.Schema<TOutput> };
-}): Promise<TOutput> => {
+}): Promise<BrainOutput<TOutput>> => {
+  // capture start time for metrics
+  const startTime = Date.now();
+
   // compose system prompt from briefs
   const systemPrompt = input.role.briefs
     ? await castBriefsToPrompt({ briefs: input.role.briefs })
@@ -97,8 +120,58 @@ const invokeCodex = async <TOutput>(input: {
     }),
   )();
 
+  // capture elapsed time
+  const elapsedMs = Date.now() - startTime;
+
   // parse output via schema for runtime validation
-  return input.schema.output.parse(JSON.parse(response.finalResponse));
+  const content = response.finalResponse;
+  const output = input.schema.output.parse(JSON.parse(content));
+
+  // extract token usage from response (codex sdk uses snake_case)
+  const usage = response.usage ?? {
+    input_tokens: 0,
+    output_tokens: 0,
+    cached_input_tokens: 0,
+  };
+  const tokensInput = usage.input_tokens ?? 0;
+  const tokensOutput = usage.output_tokens ?? 0;
+  const tokensCacheGet = usage.cached_input_tokens ?? 0;
+  const tokensCacheSet = 0;
+
+  // compute character counts
+  const charsInput = (systemPrompt?.length ?? 0) + input.prompt.length;
+  const charsOutput = content.length;
+
+  // build size metrics
+  const size = {
+    tokens: {
+      input: tokensInput,
+      output: tokensOutput,
+      cache: { get: tokensCacheGet, set: tokensCacheSet },
+    },
+    chars: {
+      input: charsInput,
+      output: charsOutput,
+      cache: { get: 0, set: 0 },
+    },
+  };
+
+  // compute cash costs via rhachet helper
+  const { cash } = calcBrainOutputCost({
+    for: { tokens: size.tokens },
+    with: { cost: { cash: input.spec.cost.cash } },
+  });
+
+  // build metrics
+  const metrics = new BrainOutputMetrics({
+    size,
+    cost: {
+      time: { milliseconds: elapsedMs },
+      cash,
+    },
+  });
+
+  return new BrainOutput({ output, metrics });
 };
 
 /**
@@ -106,34 +179,41 @@ const invokeCodex = async <TOutput>(input: {
  * .why = enables model variant selection via slug
  *
  * .example
- *   genBrainRepl({ slug: 'openai/codex' }) // default model
- *   genBrainRepl({ slug: 'openai/codex/mini' }) // fast + cheap
- *   genBrainRepl({ slug: 'openai/codex/5.2' }) // most advanced
+ *   genBrainRepl({ slug: 'openai/codex' })          // default (5.1-max)
+ *   genBrainRepl({ slug: 'openai/codex/5.2' })      // version only (5.2)
+ *   genBrainRepl({ slug: 'openai/codex/mini' })     // tier only (5.1-mini)
+ *   genBrainRepl({ slug: 'openai/codex/max/5.2' })  // tier + version
  */
-export const genBrainRepl = (input: { slug: CodexSlug }): BrainRepl => {
-  const config = CONFIG_BY_SLUG[input.slug];
-
-  // extract model slug without the repo prefix (e.g., 'openai/codex' -> 'codex')
-  const modelSlug = input.slug.replace(/^openai\//, '');
+export const genBrainRepl = (input: {
+  slug: OpenaiBrainReplSlug;
+}): BrainRepl => {
+  const config = CONFIG_BY_REPL_SLUG[input.slug];
 
   return new BrainRepl({
     repo: 'openai',
-    slug: modelSlug,
+    slug: input.slug,
     description: config.description,
+    spec: config.spec,
 
     /**
      * .what = readonly analysis (research, queries, code review)
-     * .why = provides safe, non-mutating agent interactions via read-only sandbox
+     * .why = provides safe, non-mutate agent interactions via read-only sandbox
      */
     ask: async <TOutput>(
       askInput: {
+        plugs?: BrainReplPlugs;
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
         schema: { output: z.Schema<TOutput> };
       },
       _context?: Empty,
-    ): Promise<TOutput> =>
-      invokeCodex({ mode: 'ask', model: config.model, ...askInput }),
+    ): Promise<BrainOutput<TOutput>> =>
+      invokeCodex({
+        mode: 'ask',
+        model: config.model,
+        spec: config.spec,
+        ...askInput,
+      }),
 
     /**
      * .what = read+write actions (code changes, file edits)
@@ -141,12 +221,18 @@ export const genBrainRepl = (input: { slug: CodexSlug }): BrainRepl => {
      */
     act: async <TOutput>(
       actInput: {
+        plugs?: BrainReplPlugs;
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
         schema: { output: z.Schema<TOutput> };
       },
       _context?: Empty,
-    ): Promise<TOutput> =>
-      invokeCodex({ mode: 'act', model: config.model, ...actInput }),
+    ): Promise<BrainOutput<TOutput>> =>
+      invokeCodex({
+        mode: 'act',
+        model: config.model,
+        spec: config.spec,
+        ...actInput,
+      }),
   });
 };
