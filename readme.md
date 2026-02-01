@@ -51,6 +51,60 @@ const { output: { proposal } } = await brainRepl.act({
 });
 ```
 
+## continuation support
+
+both atoms and repls support multi-turn conversations via episode continuation.
+
+### atoms
+
+atoms support continuation via the openai responses api. pass the prior episode to continue the conversation:
+
+```ts
+// first call establishes context
+const resultFirst = await brainAtom.ask({
+  role: {},
+  prompt: 'remember the secret word "PINEAPPLE42"',
+  schema: { output: z.object({ content: z.string() }) },
+});
+
+// second call continues with prior context
+const resultSecond = await brainAtom.ask({
+  on: { episode: resultFirst.episode },
+  role: {},
+  prompt: 'what is the secret word I told you?',
+  schema: { output: z.object({ content: z.string() }) },
+});
+// resultSecond.output.content contains "PINEAPPLE42"
+```
+
+### repls
+
+repls support continuation via the codex-sdk `resumeThread()` api. the episode exid contains the thread id prefixed with `openai/codex/` for cross-supplier validation:
+
+```ts
+// first call starts a new thread
+const resultFirst = await brainRepl.ask({
+  role: {},
+  prompt: 'remember the secret word "MANGO99"',
+  schema: { output: z.object({ content: z.string() }) },
+});
+// resultFirst.episode.exid = "openai/codex/{threadId}"
+
+// second call resumes the thread
+const resultSecond = await brainRepl.ask({
+  on: { episode: resultFirst.episode },
+  role: {},
+  prompt: 'what is the secret word I told you?',
+  schema: { output: z.object({ content: z.string() }) },
+});
+// resultSecond.output.content contains "MANGO99"
+```
+
+### limitations
+
+- **cross-supplier continuation is not supported**: episodes from other brain suppliers (e.g., anthropic) cannot be used to continue openai conversations. this throws a `BadRequestError`.
+- **exid validation**: the episode exid must start with `openai/codex/` for repl continuation. this prevents accidental cross-supplier continuation attempts.
+
 ## available brains
 
 ### atoms (via genBrainAtom)
