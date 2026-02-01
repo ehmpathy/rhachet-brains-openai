@@ -1,12 +1,14 @@
 import OpenAI from 'openai';
 import {
   BrainAtom,
+  type BrainAtomPlugs,
+  type BrainEpisode,
   BrainOutput,
   BrainOutputMetrics,
+  calcBrainOutputCost,
   castBriefsToPrompt,
-} from 'rhachet';
-import type { BrainAtomPlugs } from 'rhachet/dist/domain.objects/BrainAtomPlugs';
-import { calcBrainOutputCost } from 'rhachet/dist/domain.operations/brainCost/calcBrainOutputCost';
+  genBrainContinuables,
+} from 'rhachet/brains';
 import type { Artifact } from 'rhachet-artifact';
 import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
@@ -43,6 +45,7 @@ export const genBrainAtom = (input: {
      */
     ask: async <TOutput>(
       askInput: {
+        on?: { episode: BrainEpisode };
         plugs?: BrainAtomPlugs;
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
@@ -78,10 +81,21 @@ export const genBrainAtom = (input: {
         ? `${systemPrompt}\n\n---\n\n${askInput.prompt}`
         : askInput.prompt;
 
+      // build input from prior episode exchanges + current prompt
+      const priorMessages: OpenAI.Responses.ResponseInputItem[] =
+        askInput.on?.episode?.exchanges.flatMap((exchange) => [
+          { role: 'user' as const, content: exchange.input },
+          { role: 'assistant' as const, content: exchange.output },
+        ]) ?? [];
+      const inputMessages: OpenAI.Responses.ResponseInputItem[] = [
+        ...priorMessages,
+        { role: 'user' as const, content: fullPrompt },
+      ];
+
       // call responses api
       const response = await openai.responses.create({
         model: config.model,
-        input: fullPrompt,
+        input: inputMessages,
         ...(isObjectSchema && {
           text: {
             format: {
@@ -152,7 +166,28 @@ export const genBrainAtom = (input: {
         ? askInput.schema.output.parse(JSON.parse(content))
         : askInput.schema.output.parse(content);
 
-      return new BrainOutput({ output, metrics });
+      // generate continuation artifacts (episode for atom, series is null)
+      const continuables = await genBrainContinuables({
+        for: { grain: 'atom' },
+        on: {
+          episode: askInput.on?.episode ?? null,
+          series: null,
+        },
+        with: {
+          exchange: {
+            input: askInput.prompt,
+            output: content,
+            exid: response.id,
+          },
+        },
+      });
+
+      return new BrainOutput({
+        output,
+        metrics,
+        episode: continuables.episode,
+        series: continuables.series,
+      });
     },
   });
 };

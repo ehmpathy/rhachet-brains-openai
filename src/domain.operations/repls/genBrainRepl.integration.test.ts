@@ -67,6 +67,33 @@ describe('genBrainRepl.integration', () => {
         expect(result.metrics.cost.cash.deets.input).toBeDefined();
         expect(result.metrics.cost.cash.deets.output).toBeDefined();
       });
+
+      then('episode is returned with hash and exchanges', () => {
+        expect(result.episode).toBeDefined();
+        expect(result.episode.hash).toBeDefined();
+        expect(result.episode.hash.length).toBeGreaterThan(0);
+        expect(result.episode.exchanges).toBeDefined();
+        expect(result.episode.exchanges.length).toEqual(1);
+      });
+
+      then('episode.exchanges[0] contains the input and output', () => {
+        const exchange = result.episode.exchanges[0]!;
+        expect(exchange.input).toContain('hello from codex');
+        expect(exchange.output).toBeDefined();
+        expect(exchange.output.length).toBeGreaterThan(0);
+      });
+
+      then('series is returned with hash and episodes', () => {
+        expect(result.series).toBeDefined();
+        expect(result.series!.hash).toBeDefined();
+        expect(result.series!.hash.length).toBeGreaterThan(0);
+        expect(result.series!.episodes).toBeDefined();
+        expect(result.series!.episodes.length).toEqual(1);
+      });
+
+      then('series.episodes[0] matches the episode', () => {
+        expect(result.series!.episodes[0]!.hash).toEqual(result.episode.hash);
+      });
     });
 
     when('[t1] with briefs', () => {
@@ -98,6 +125,58 @@ describe('genBrainRepl.integration', () => {
         expect(result.output.content).toBeDefined();
         expect(result.output.content.length).toBeGreaterThan(0);
         expect(result.output.content.toLowerCase()).toContain('hello');
+      });
+    });
+  });
+
+  given('[case4] episode continuation is supported', () => {
+    when('[t0] ask is called, then continued with on.episode', () => {
+      const resultFirst = useThen(
+        'first call establishes context with secret word',
+        async () =>
+          brainRepl.ask({
+            role: {},
+            prompt:
+              'remember the secret word "MANGO99". respond with exactly: { "content": "got it" }',
+            schema: { output: outputSchema },
+          }),
+      );
+
+      then('first call returns episode with one exchange', () => {
+        expect(resultFirst.episode.exchanges.length).toEqual(1);
+      });
+
+      then('first call episode.exid contains prefixed thread id', () => {
+        expect(resultFirst.episode.exid).toBeDefined();
+        expect(resultFirst.episode.exid?.startsWith('openai/codex/')).toBe(
+          true,
+        );
+      });
+
+      const resultSecond = useThen(
+        'second call uses episode for continuation',
+        async () =>
+          brainRepl.ask({
+            on: { episode: resultFirst.episode },
+            role: {},
+            prompt:
+              'what is the secret word I told you? respond with exactly: { "content": "MANGO99" }',
+            schema: { output: outputSchema },
+          }),
+      );
+
+      then('second call remembers context from first call', () => {
+        expect(resultSecond.output.content).toContain('MANGO99');
+      });
+
+      then('second call episode has two exchanges', () => {
+        expect(resultSecond.episode.exchanges.length).toEqual(2);
+      });
+
+      then('second call episode includes both exchanges in order', () => {
+        const exchanges = resultSecond.episode.exchanges;
+        expect(exchanges[0]?.input).toContain('MANGO99');
+        expect(exchanges[1]?.input).toContain('secret word');
       });
     });
   });

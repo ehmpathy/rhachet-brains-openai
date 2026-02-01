@@ -1,13 +1,17 @@
 import { Codex } from '@openai/codex-sdk';
-import type { BrainSpec } from 'rhachet';
+import { BadRequestError } from 'helpful-errors';
 import {
+  type BrainEpisode,
   BrainOutput,
   BrainOutputMetrics,
   BrainRepl,
+  type BrainReplPlugs,
+  type BrainSeries,
+  type BrainSpec,
+  calcBrainOutputCost,
   castBriefsToPrompt,
-} from 'rhachet';
-import type { BrainReplPlugs } from 'rhachet/dist/domain.objects/BrainReplPlugs';
-import { calcBrainOutputCost } from 'rhachet/dist/domain.operations/brainCost/calcBrainOutputCost';
+  genBrainContinuables,
+} from 'rhachet/brains';
 import type { Artifact } from 'rhachet-artifact';
 import type { GitFile } from 'rhachet-artifact-git';
 import type { Empty } from 'type-fns';
@@ -76,6 +80,31 @@ const composePromptWithSystem = (
 };
 
 /**
+ * .what = prefix for episode exids from this repo
+ * .why = identifies episodes created by openai codex-sdk for validation on continuation
+ */
+const EXID_PREFIX = 'openai/codex';
+
+/**
+ * .what = encodes thread id with prefix for tracking
+ * .why = enables validation that continuation attempts use compatible episodes
+ */
+const encodeExid = (threadId: string): string => `${EXID_PREFIX}/${threadId}`;
+
+/**
+ * .what = decodes thread id from prefixed exid
+ * .why = extracts raw thread id for codex-sdk resumeThread call
+ */
+const decodeExid = (
+  exid: string,
+): { valid: true; threadId: string } | { valid: false } => {
+  if (!exid.startsWith(`${EXID_PREFIX}/`)) return { valid: false };
+  const threadId = exid.slice(`${EXID_PREFIX}/`.length);
+  if (!threadId) return { valid: false };
+  return { valid: true, threadId };
+};
+
+/**
  * .what = invokes codex sdk with specified sandbox mode
  * .why = dedupes shared logic between ask (read-only) and act (workspace-write)
  */
@@ -83,10 +112,12 @@ const invokeCodex = async <TOutput>(input: {
   mode: 'ask' | 'act';
   model: string | undefined;
   spec: BrainSpec;
+  on?: { episode?: BrainEpisode; series?: BrainSeries };
+  plugs?: BrainReplPlugs;
   role: { briefs?: Artifact<typeof GitFile>[] };
   prompt: string;
   schema: { output: z.Schema<TOutput> };
-}): Promise<BrainOutput<TOutput>> => {
+}): Promise<BrainOutput<TOutput, 'repl'>> => {
   // capture start time for metrics
   const startTime = Date.now();
 
@@ -105,12 +136,26 @@ const invokeCodex = async <TOutput>(input: {
     apiKey: process.env.OPENAI_API_KEY,
   });
 
-  // start thread with sandbox mode based on operation type
-  const sandboxMode = input.mode === 'ask' ? 'read-only' : 'workspace-write';
-  const thread = codex.startThread({
-    model: input.model,
-    sandboxMode,
-  });
+  // determine sandbox mode based on operation type
+  const sandboxMode: 'read-only' | 'workspace-write' =
+    input.mode === 'ask' ? 'read-only' : 'workspace-write';
+  const threadOptions = { model: input.model, sandboxMode };
+
+  // resume thread if prior episode provided, otherwise start fresh
+  const priorExid = input.on?.episode?.exid ?? null;
+  const thread = (() => {
+    if (!priorExid) return codex.startThread(threadOptions);
+
+    // validate and decode the exid
+    const decoded = decodeExid(priorExid);
+    if (!decoded.valid)
+      throw new BadRequestError(
+        'episode continuation failed: exid is not from openai/codex. cross-supplier continuation is not supported.',
+        { priorExid },
+      );
+
+    return codex.resumeThread(decoded.threadId, threadOptions);
+  })();
 
   // compose full prompt and run with timeout + retry for resilience
   const fullPrompt = composePromptWithSystem(input.prompt, systemPrompt);
@@ -171,7 +216,32 @@ const invokeCodex = async <TOutput>(input: {
     },
   });
 
-  return new BrainOutput({ output, metrics });
+  // encode thread id with prefix for cross-supplier validation
+  const threadExid = thread.id ? encodeExid(thread.id) : null;
+
+  // generate continuation artifacts (episode and series for repl)
+  const continuables = await genBrainContinuables({
+    for: { grain: 'repl' },
+    on: {
+      episode: input.on?.episode ?? null,
+      series: input.on?.series ?? null,
+    },
+    with: {
+      exchange: {
+        input: input.prompt,
+        output: content,
+        exid: thread.id,
+      },
+      episode: { exid: threadExid },
+    },
+  });
+
+  return new BrainOutput({
+    output,
+    metrics,
+    episode: continuables.episode,
+    series: continuables.series,
+  });
 };
 
 /**
@@ -201,18 +271,23 @@ export const genBrainRepl = (input: {
      */
     ask: async <TOutput>(
       askInput: {
+        on?: { episode?: BrainEpisode; series?: BrainSeries };
         plugs?: BrainReplPlugs;
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
         schema: { output: z.Schema<TOutput> };
       },
       _context?: Empty,
-    ): Promise<BrainOutput<TOutput>> =>
+    ): Promise<BrainOutput<TOutput, 'repl'>> =>
       invokeCodex({
         mode: 'ask',
         model: config.model,
         spec: config.spec,
-        ...askInput,
+        on: askInput.on,
+        plugs: askInput.plugs,
+        role: askInput.role,
+        prompt: askInput.prompt,
+        schema: askInput.schema,
       }),
 
     /**
@@ -221,18 +296,23 @@ export const genBrainRepl = (input: {
      */
     act: async <TOutput>(
       actInput: {
+        on?: { episode?: BrainEpisode; series?: BrainSeries };
         plugs?: BrainReplPlugs;
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
         schema: { output: z.Schema<TOutput> };
       },
       _context?: Empty,
-    ): Promise<BrainOutput<TOutput>> =>
+    ): Promise<BrainOutput<TOutput, 'repl'>> =>
       invokeCodex({
         mode: 'act',
         model: config.model,
         spec: config.spec,
-        ...actInput,
+        on: actInput.on,
+        plugs: actInput.plugs,
+        role: actInput.role,
+        prompt: actInput.prompt,
+        schema: actInput.schema,
       }),
   });
 };
