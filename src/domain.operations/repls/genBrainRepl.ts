@@ -4,8 +4,8 @@ import {
   type BrainEpisode,
   BrainOutput,
   BrainOutputMetrics,
+  type BrainPlugs,
   BrainRepl,
-  type BrainReplPlugs,
   type BrainSeries,
   type BrainSpec,
   calcBrainOutputCost,
@@ -108,16 +108,16 @@ const decodeExid = (
  * .what = invokes codex sdk with specified sandbox mode
  * .why = dedupes shared logic between ask (read-only) and act (workspace-write)
  */
-const invokeCodex = async <TOutput>(input: {
+const invokeCodex = async <TOutput, TPlugs extends BrainPlugs>(input: {
   mode: 'ask' | 'act';
   model: string | undefined;
   spec: BrainSpec;
   on?: { episode?: BrainEpisode; series?: BrainSeries };
-  plugs?: BrainReplPlugs;
+  plugs?: TPlugs;
   role: { briefs?: Artifact<typeof GitFile>[] };
   prompt: string;
   schema: { output: z.Schema<TOutput> };
-}): Promise<BrainOutput<TOutput, 'repl'>> => {
+}): Promise<BrainOutput<TOutput, 'repl', TPlugs>> => {
   // capture start time for metrics
   const startTime = Date.now();
 
@@ -236,12 +236,14 @@ const invokeCodex = async <TOutput>(input: {
     },
   });
 
+  // note: repls execute tools internally, so calls is always null
   return new BrainOutput({
     output,
+    calls: null,
     metrics,
     episode: continuables.episode,
     series: continuables.series,
-  });
+  }) as BrainOutput<TOutput, 'repl', TPlugs>;
 };
 
 /**
@@ -265,20 +267,19 @@ export const genBrainRepl = (input: {
     description: config.description,
     spec: config.spec,
 
-    /**
-     * .what = readonly analysis (research, queries, code review)
-     * .why = provides safe, non-mutate agent interactions via read-only sandbox
-     */
-    ask: async <TOutput>(
+    // note: repls only accept string prompts (tool execution handled internally by codex SDK)
+    // type assertions needed because BrainRepl contract now supports AsBrainPromptFor<TPlugs>
+    // but codex SDK's thread.run() only accepts string prompts
+    ask: (async <TOutput, TPlugs extends BrainPlugs>(
       askInput: {
         on?: { episode?: BrainEpisode; series?: BrainSeries };
-        plugs?: BrainReplPlugs;
+        plugs?: TPlugs;
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
         schema: { output: z.Schema<TOutput> };
       },
       _context?: Empty,
-    ): Promise<BrainOutput<TOutput, 'repl'>> =>
+    ): Promise<BrainOutput<TOutput, 'repl', TPlugs>> =>
       invokeCodex({
         mode: 'ask',
         model: config.model,
@@ -288,22 +289,18 @@ export const genBrainRepl = (input: {
         role: askInput.role,
         prompt: askInput.prompt,
         schema: askInput.schema,
-      }),
+      })) as BrainRepl['ask'],
 
-    /**
-     * .what = read+write actions (code changes, file edits)
-     * .why = provides full agentic capabilities via workspace-write sandbox
-     */
-    act: async <TOutput>(
+    act: (async <TOutput, TPlugs extends BrainPlugs>(
       actInput: {
         on?: { episode?: BrainEpisode; series?: BrainSeries };
-        plugs?: BrainReplPlugs;
+        plugs?: TPlugs;
         role: { briefs?: Artifact<typeof GitFile>[] };
         prompt: string;
         schema: { output: z.Schema<TOutput> };
       },
       _context?: Empty,
-    ): Promise<BrainOutput<TOutput, 'repl'>> =>
+    ): Promise<BrainOutput<TOutput, 'repl', TPlugs>> =>
       invokeCodex({
         mode: 'act',
         model: config.model,
@@ -313,6 +310,6 @@ export const genBrainRepl = (input: {
         role: actInput.role,
         prompt: actInput.prompt,
         schema: actInput.schema,
-      }),
+      })) as BrainRepl['act'],
   });
 };
