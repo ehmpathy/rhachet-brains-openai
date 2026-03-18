@@ -431,4 +431,86 @@ describe('genBrainAtom.integration', () => {
       });
     });
   });
+
+  given('[case9] tool with optional properties (openai strict mode)', () => {
+    // this test reproduces the defect from handoff:
+    // openai strict mode requires all properties in required array
+    // optional properties must have nullable type: ["type", "null"]
+    const readTool = genBrainPlugToolDeclaration({
+      slug: 'file.read',
+      name: 'Read File',
+      description: 'read contents of a file with optional offset and limit',
+      schema: {
+        input: z.object({
+          path: z.string().describe('file path to read'),
+          offset: z.number().optional().describe('line offset to start from'),
+          limit: z.number().optional().describe('max lines to read'),
+        }),
+        output: z.object({
+          content: z.string(),
+          lines: z.number(),
+        }),
+      },
+      execute: async () => ({ content: 'file content', lines: 10 }),
+    });
+
+    when('[t0] ask requires tool with optional input properties', () => {
+      const result = useThen('it requests the tool', async () =>
+        brainAtom.ask({
+          role: {},
+          prompt: 'read the first 5 lines of package.json',
+          schema: { output: z.object({ summary: z.string() }) },
+          plugs: { tools: [readTool] },
+        }),
+      );
+
+      then('api call succeeds (no schema validation error)', () => {
+        // if optional props not handled, openai returns:
+        // "400 Invalid schema for function 'file_read': In context=(),
+        // 'required' is required to be supplied and to be an array
+        // that includes every key in properties. Absent: 'offset'."
+        expect(result.episode).toBeDefined();
+      });
+
+      then('tool invocation is returned', () => {
+        expect(result.calls?.tools).toBeDefined();
+        expect(result.calls?.tools.length).toBeGreaterThan(0);
+      });
+
+      then('invocation has correct slug', () => {
+        const invocation = result.calls?.tools[0];
+        // slug is transformed: dots become underscores for openai function names
+        expect(invocation?.slug).toEqual('file_read');
+      });
+
+      then('invocation input includes path (required)', () => {
+        const invocation = result.calls?.tools[0];
+        expect(invocation?.input).toHaveProperty('path');
+      });
+
+      then('invocation input may include optional props as null', () => {
+        // openai strict mode: optional props are nullable
+        // model may pass null for offset/limit or omit them
+        const invocation = result.calls?.tools[0];
+        const input = invocation?.input as {
+          path: string;
+          offset?: number | null;
+          limit?: number | null;
+        };
+        // path is always present
+        expect(typeof input.path).toEqual('string');
+        // offset/limit can be number, null, or undefined
+        if ('offset' in input) {
+          expect(
+            input.offset === null || typeof input.offset === 'number',
+          ).toBe(true);
+        }
+        if ('limit' in input) {
+          expect(input.limit === null || typeof input.limit === 'number').toBe(
+            true,
+          );
+        }
+      });
+    });
+  });
 });
