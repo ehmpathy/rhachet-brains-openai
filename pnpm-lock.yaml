@@ -100,20 +100,20 @@ importers:
         specifier: 30.2.0
         version: 30.2.0(@types/node@22.15.21)(esbuild-register@3.6.0(esbuild@0.27.2))(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@22.15.21)(typescript@5.4.5))
       rhachet:
-        specifier: 1.37.17
-        version: 1.37.17(zod@4.3.4)
+        specifier: 1.37.18
+        version: 1.37.18(zod@4.3.4)
       rhachet-brains-anthropic:
-        specifier: 0.3.3
-        version: 0.3.3(rhachet@1.37.17(zod@4.3.4))
+        specifier: 0.4.0
+        version: 0.4.0(rhachet@1.37.18(zod@4.3.4))
       rhachet-roles-bhrain:
-        specifier: 0.20.0
-        version: 0.20.0(@types/node@22.15.21)
+        specifier: 0.20.2
+        version: 0.20.2(@types/node@22.15.21)
       rhachet-roles-bhuild:
-        specifier: 0.14.2
-        version: 0.14.2(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(@types/node@22.15.21)(rhachet-roles-bhrain@0.20.0(@types/node@22.15.21))
+        specifier: 0.14.4
+        version: 0.14.4(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(@types/node@22.15.21)(rhachet-roles-bhrain@0.20.2(@types/node@22.15.21))
       rhachet-roles-ehmpathy:
-        specifier: 1.29.0
-        version: 1.29.0(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(@types/node@22.15.21)(rhachet@1.37.17(zod@4.3.4))
+        specifier: 1.29.2
+        version: 1.29.2(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(@types/node@22.15.21)(rhachet@1.37.18(zod@4.3.4))
       test-fns:
         specifier: 1.10.0
         version: 1.10.0(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(@types/node@22.15.21)(zod@4.3.4)
@@ -4209,8 +4209,8 @@ packages:
     resolution: {integrity: sha512-yzDL+Dv1az5WGpVvrRZT6gLBwDAzxLO/7newlyrfMM+ku91PFR9OvlADoqyulBCCUWnazv3eXl0vzrIyak4hAQ==}
     engines: {node: '>=8.0.0'}
 
-  rhachet-brains-anthropic@0.3.3:
-    resolution: {integrity: sha512-TRWAxs18GAFXO7GNxs27OOUCMqg/WdZNCXLGSDHY3vaRWrlaoh9e7GrUGNm3ju55A3X950bQUSNawyO6tKvLWw==}
+  rhachet-brains-anthropic@0.4.0:
+    resolution: {integrity: sha512-84VilMmja+9qKc4xV+ao/mHoA1wo+H4fIOApN1zIh86E5NfzOwO3Ij2kU+VU6fqdzs0353ZirEFXV3VNkA4epA==}
     engines: {node: '>=8.0.0'}
     peerDependencies:
       rhachet: '>=1.21.4'
@@ -4221,26 +4221,26 @@ packages:
     peerDependencies:
       rhachet: '>=1.21.4'
 
-  rhachet-roles-bhrain@0.20.0:
-    resolution: {integrity: sha512-S1fhMi5phYrxWZQF8AV27Yl75VN0a73PztwqMtDC4YiWgz8+8NMRXtwbpFp9ZWZETcBtvu8NlPqYtuzamf82dg==}
+  rhachet-roles-bhrain@0.20.2:
+    resolution: {integrity: sha512-/DYAsMsOEDGDtD7rfrEKke1oAuzvuHBHJtDW+4PIzPBmmEHPUli/F/AfE7NYMOzTj6R31D2v316hkRYi9DTAxw==}
     engines: {node: '>=8.0.0'}
 
   rhachet-roles-bhrain@0.7.5:
     resolution: {integrity: sha512-O2zRlITFHmpTHbS3E5PUODlqAWWVt+xV44uu3P3RSLygcgFrG8q9NekLMJTMBsnL2ug4S8mNU7Ji7wCwjkX7qg==}
     engines: {node: '>=8.0.0'}
 
-  rhachet-roles-bhuild@0.14.2:
-    resolution: {integrity: sha512-DLpYV4xOZ3msJWhf85/DbV4LTTv2Q9PlqQ+oN/OTTGaptKQsTZdgmx6CVC+RaodGP2FeNhOxoHOX0RO3OcSAlA==}
+  rhachet-roles-bhuild@0.14.4:
+    resolution: {integrity: sha512-8VpV/RhAoqy51K1Wa0VHqRMVPTjOdOLc3ZuJTG0+7aMaU9Mdcrdt8R2tpQbOfEhK/aGJIIXHWmHHhlRZA+24RQ==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       rhachet-roles-bhrain: '>=0.12.1'
 
-  rhachet-roles-ehmpathy@1.29.0:
-    resolution: {integrity: sha512-PUpfrcOvKJSErpHoCZMyEs2X1lIqAQVa4GMjW46qcUvpxusSJK3T7XplEzBeZ8H06sJuyOJOqlPqOY46QGTM9w==}
+  rhachet-roles-ehmpathy@1.29.2:
+    resolution: {integrity: sha512-fcdTB+RKGje7+mnfRXXccnZjAtsCJgCaiQOCq69ErXM5vtLEXq5ZSmSvZ0ttac+auc69Mp7bmyKO7KqkWKhxNg==}
     engines: {node: '>=8.0.0'}
 
-  rhachet@1.37.17:
-    resolution: {integrity: sha512-KwwODCTvQYRTBcuxoqala6IYsWJ4vLqGb8wl0d9+MrggZxboQGLBEgtF+K4qI+e7SCKHOUCm6sAMoiUKBsKokw==}
+  rhachet@1.37.18:
+    resolution: {integrity: sha512-0aE7cCEkVr+7vsFYyOLDGXesFqiXs/ysCTlKTnAQ3Fa+mNa/dS78d9UUZLBD7q7T3E6vC2UOpRecazVYZCDwQw==}
     engines: {node: '>=22.0.0'}
     hasBin: true
     peerDependencies:
@@ -8036,8 +8036,8 @@ snapshots:
       domain-objects: 0.31.3
       helpful-errors: 1.5.3
       joi: 17.4.0
-      rhachet: 1.37.17(zod@4.3.4)
-      rhachet-roles-ehmpathy: 1.29.0(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(@types/node@22.15.21)(rhachet@1.37.17(zod@4.3.4))
+      rhachet: 1.37.18(zod@4.3.4)
+      rhachet-roles-ehmpathy: 1.29.2(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(@types/node@22.15.21)(rhachet@1.37.18(zod@4.3.4))
       type-fns: 1.21.0
       uuid-fns: 1.1.3
     transitivePeerDependencies:
@@ -9630,7 +9630,7 @@ snapshots:
       domain-objects: 0.31.9
       helpful-errors: 1.5.3
 
-  rhachet-brains-anthropic@0.3.3(rhachet@1.37.17(zod@4.3.4)):
+  rhachet-brains-anthropic@0.4.0(rhachet@1.37.18(zod@4.3.4)):
     dependencies:
       '@anthropic-ai/claude-agent-sdk': 0.1.76(zod@4.3.4)
       '@anthropic-ai/sdk': 0.71.2(zod@4.3.4)
@@ -9638,19 +9638,19 @@ snapshots:
       helpful-errors: 1.5.3
       iso-price: 1.1.1(domain-objects@0.31.9)
       iso-time: 1.11.1
-      rhachet: 1.37.17(zod@4.3.4)
+      rhachet: 1.37.18(zod@4.3.4)
       rhachet-artifact: 1.0.1
       rhachet-artifact-git: 1.1.5
       type-fns: 1.21.0
       zod: 4.3.4
 
-  rhachet-brains-xai@0.2.1(@types/node@22.15.21)(rhachet@1.37.17(zod@4.3.4)):
+  rhachet-brains-xai@0.2.1(@types/node@22.15.21)(rhachet@1.37.18(zod@4.3.4)):
     dependencies:
       domain-objects: 0.31.9
       helpful-errors: 1.5.3
       iso-price: 1.1.1(domain-objects@0.31.9)
       openai: 5.8.2(zod@4.3.4)
-      rhachet: 1.37.17(zod@4.3.4)
+      rhachet: 1.37.18(zod@4.3.4)
       rhachet-artifact: 1.0.1
       rhachet-artifact-git: 1.1.5
       rhachet-roles-bhrain: 0.7.5(@types/node@22.15.21)
@@ -9661,7 +9661,7 @@ snapshots:
       - aws-crt
       - ws
 
-  rhachet-roles-bhrain@0.20.0(@types/node@22.15.21):
+  rhachet-roles-bhrain@0.20.2(@types/node@22.15.21):
     dependencies:
       '@ehmpathy/as-command': 1.0.3
       '@ehmpathy/uni-time': 1.8.1
@@ -9714,13 +9714,13 @@ snapshots:
       - aws-crt
       - ws
 
-  rhachet-roles-bhuild@0.14.2(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(@types/node@22.15.21)(rhachet-roles-bhrain@0.20.0(@types/node@22.15.21)):
+  rhachet-roles-bhuild@0.14.4(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(@types/node@22.15.21)(rhachet-roles-bhrain@0.20.2(@types/node@22.15.21)):
     dependencies:
       domain-objects: 0.31.9
       emoji-space-shim: 0.0.0
       helpful-errors: 1.5.3
       iso-time: 1.11.3
-      rhachet-roles-bhrain: 0.20.0(@types/node@22.15.21)
+      rhachet-roles-bhrain: 0.20.2(@types/node@22.15.21)
       test-fns: 1.15.0(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(@types/node@22.15.21)(zod@4.3.4)
       zod: 4.3.4
     transitivePeerDependencies:
@@ -9730,7 +9730,7 @@ snapshots:
       - aws-crt
       - ws
 
-  rhachet-roles-ehmpathy@1.29.0(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(@types/node@22.15.21)(rhachet@1.37.17(zod@4.3.4)):
+  rhachet-roles-ehmpathy@1.29.2(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(@types/node@22.15.21)(rhachet@1.37.18(zod@4.3.4)):
     dependencies:
       '@atjsh/llmlingua-2': 2.0.3(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(js-tiktoken@1.0.21)
       '@ehmpathy/as-command': 1.0.3
@@ -9744,7 +9744,7 @@ snapshots:
       openai: 5.8.2(zod@4.3.4)
       rhachet-artifact: 1.0.0
       rhachet-artifact-git: 1.1.0
-      rhachet-brains-xai: 0.2.1(@types/node@22.15.21)(rhachet@1.37.17(zod@4.3.4))
+      rhachet-brains-xai: 0.2.1(@types/node@22.15.21)(rhachet@1.37.18(zod@4.3.4))
       serde-fns: 1.2.0
       simple-in-memory-cache: 0.4.0
       simple-on-disk-cache: 1.7.3
@@ -9761,7 +9761,7 @@ snapshots:
       - rhachet
       - ws
 
-  rhachet@1.37.17(zod@4.3.4):
+  rhachet@1.37.18(zod@4.3.4):
     dependencies:
       '@noble/curves': 2.0.1
       '@noble/hashes': 2.0.1
